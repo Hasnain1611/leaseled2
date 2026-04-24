@@ -34311,11 +34311,12 @@ export default function App() {
         finalType = "image/jpeg";
       }
 
-      // For PDFs over 4MB base64, truncate to first ~3MB (covers ~first 20 pages)
-      const pdfB64 = b64.length > 5000000 ? b64.substring(0, 4000000) : b64;
+      // For PDFs: if over 3MB base64 (~2.25MB binary), send as URL or compress
+      // Strategy: send as base64 but cap at 3MB - Anthropic supports up to 5MB
+      const safePdfB64 = (isPdf && b64.length > 4000000) ? b64.substring(0, 3900000) : b64;
 
       const messages = isPdf
-        ? [{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:EXTRACT_PROMPT}]}]
+        ? [{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:safePdfB64}},{type:"text",text:EXTRACT_PROMPT}]}]
         : isImage
         ? [{role:"user",content:[{type:"image",source:{type:"base64",media_type:finalType,data:finalB64}},{type:"text",text:EXTRACT_PROMPT}]}]
         : [{role:"user",content:[{type:"text",text:`Lease document (${file.name}):\n\n${atob(b64).substring(0,25000)}\n\n${EXTRACT_PROMPT}`}]}];
