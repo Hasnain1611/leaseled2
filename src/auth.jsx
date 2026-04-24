@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from "react";
+import Auth from "./Auth";
 import { supabase } from "./supabase";
 
 // ── formatting ─────────────────────────────────────────────────────────────
@@ -327,85 +328,6 @@ Schema:
 }`;
 
 // ── main ────────────────────────────────────────────────────────────────────
-
-// ── Auth component ─────────────────────────────────────────────────────────
-function Auth() {
-  const [mode, setMode] = React.useState("login");
-  const [email, setEmail] = React.useState("");
-  const [password, setPassword] = React.useState("");
-  const [name, setName] = React.useState("");
-  const [loading, setLoading] = React.useState(false);
-  const [message, setMessage] = React.useState(null);
-  const [error, setError] = React.useState(null);
-
-  async function handleLogin(e) {
-    e.preventDefault(); setLoading(true); setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) setError(error.message);
-    setLoading(false);
-  }
-  async function handleSignup(e) {
-    e.preventDefault(); setLoading(true); setError(null);
-    const { error } = await supabase.auth.signUp({ email, password, options:{ data:{ full_name:name } } });
-    if (error) setError(error.message);
-    else setMessage("Check your email to confirm your account, then log in.");
-    setLoading(false);
-  }
-  async function handleReset(e) {
-    e.preventDefault(); setLoading(true); setError(null);
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
-    if (error) setError(error.message);
-    else setMessage("Password reset email sent — check your inbox.");
-    setLoading(false);
-  }
-
-  return (
-    <div style={{fontFamily:"'DM Sans','Helvetica Neue',sans-serif",minHeight:"100vh",background:"#F8F7F4",display:"flex",alignItems:"center",justifyContent:"center",padding:20}}>
-      <div style={{width:"100%",maxWidth:400}}>
-        <div style={{textAlign:"center",marginBottom:32}}>
-          <div style={{width:44,height:44,background:"#1A1A1A",borderRadius:11,display:"inline-flex",alignItems:"center",justifyContent:"center",marginBottom:14}}>
-            <svg width="22" height="22" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5" height="5" rx="1" fill="white"/><rect x="9" y="2" width="5" height="5" rx="1" fill="white" fillOpacity=".5"/><rect x="2" y="9" width="5" height="5" rx="1" fill="white" fillOpacity=".5"/><rect x="9" y="9" width="5" height="5" rx="1" fill="white"/></svg>
-          </div>
-          <div style={{fontSize:22,fontWeight:600,letterSpacing:"-0.03em"}}>LeaseLedger</div>
-          <div style={{fontSize:13,color:"#888",marginTop:4}}>{mode==="login"?"Sign in to your account":mode==="signup"?"Create your account":"Reset your password"}</div>
-        </div>
-        <div style={{background:"#fff",border:"1px solid #E8E6E0",borderRadius:12,padding:"28px"}}>
-          {message&&<div style={{background:"#F0FDF4",border:"1px solid #BBF7D0",borderRadius:8,padding:"12px 14px",marginBottom:18,fontSize:13,color:"#166534"}}>✓ {message}</div>}
-          {error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:8,padding:"12px 14px",marginBottom:18,fontSize:13,color:"#991B1B"}}>✗ {error}</div>}
-          <form onSubmit={mode==="login"?handleLogin:mode==="signup"?handleSignup:handleReset}>
-            {mode==="signup"&&(
-              <div style={{marginBottom:14}}>
-                <label style={{fontSize:12,fontWeight:500,display:"block",marginBottom:5}}>Full name</label>
-                <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Your name" required style={{width:"100%",padding:"9px 12px",border:"1px solid #E8E6E0",borderRadius:7,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-              </div>
-            )}
-            <div style={{marginBottom:14}}>
-              <label style={{fontSize:12,fontWeight:500,display:"block",marginBottom:5}}>Email address</label>
-              <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@company.com" required style={{width:"100%",padding:"9px 12px",border:"1px solid #E8E6E0",borderRadius:7,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-            </div>
-            {mode!=="reset"&&(
-              <div style={{marginBottom:20}}>
-                <label style={{fontSize:12,fontWeight:500,display:"block",marginBottom:5}}>Password</label>
-                <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required minLength={6} style={{width:"100%",padding:"9px 12px",border:"1px solid #E8E6E0",borderRadius:7,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-              </div>
-            )}
-            <button type="submit" disabled={loading} style={{width:"100%",padding:"10px",background:loading?"#E8E6E0":"#1A1A1A",color:loading?"#aaa":"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:500,cursor:loading?"default":"pointer"}}>
-              {loading?"Please wait…":mode==="login"?"Sign in":mode==="signup"?"Create account":"Send reset email"}
-            </button>
-          </form>
-          <div style={{marginTop:18,paddingTop:18,borderTop:"1px solid #F0EEE8",display:"flex",flexDirection:"column",gap:8,alignItems:"center"}}>
-            {mode==="login"&&<>
-              <button onClick={()=>{setMode("signup");setError(null);setMessage(null);}} style={{fontSize:13,color:"#1A1A1A",background:"none",border:"none",cursor:"pointer",fontWeight:500}}>Don't have an account? Sign up</button>
-              <button onClick={()=>{setMode("reset");setError(null);setMessage(null);}} style={{fontSize:12,color:"#888",background:"none",border:"none",cursor:"pointer"}}>Forgot password?</button>
-            </>}
-            {mode!=="login"&&<button onClick={()=>{setMode("login");setError(null);setMessage(null);}} style={{fontSize:13,color:"#1A1A1A",background:"none",border:"none",cursor:"pointer",fontWeight:500}}>← Back to sign in</button>}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   const [session, setSession]     = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
