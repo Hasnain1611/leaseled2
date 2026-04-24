@@ -34291,10 +34291,33 @@ export default function App() {
       const isPdf   = file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf");
       const isImage = ["image/jpeg","image/jpg","image/png","image/gif","image/webp"].includes(file.type)||/\.(jpe?g|png|gif|webp|tiff?)$/i.test(file.name);
       const imgType = file.type.startsWith("image/") ? file.type : "image/jpeg";
+
+      // Compress image if too large (>1.5MB base64)
+      let finalB64 = b64;
+      let finalType = imgType;
+      if (isImage && b64.length > 2000000) {
+        finalB64 = await new Promise(res => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement("canvas");
+            const scale = Math.min(1, Math.sqrt(1500000 / b64.length));
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+            res(canvas.toDataURL("image/jpeg", 0.75).split(",")[1]);
+          };
+          img.src = `data:${imgType};base64,${b64}`;
+        });
+        finalType = "image/jpeg";
+      }
+
+      // For PDFs over 4MB base64, truncate to first ~3MB (covers ~first 20 pages)
+      const pdfB64 = b64.length > 5000000 ? b64.substring(0, 4000000) : b64;
+
       const messages = isPdf
-        ? [{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},{type:"text",text:EXTRACT_PROMPT}]}]
+        ? [{role:"user",content:[{type:"document",source:{type:"base64",media_type:"application/pdf",data:pdfB64}},{type:"text",text:EXTRACT_PROMPT}]}]
         : isImage
-        ? [{role:"user",content:[{type:"image",source:{type:"base64",media_type:imgType,data:b64}},{type:"text",text:EXTRACT_PROMPT}]}]
+        ? [{role:"user",content:[{type:"image",source:{type:"base64",media_type:finalType,data:finalB64}},{type:"text",text:EXTRACT_PROMPT}]}]
         : [{role:"user",content:[{type:"text",text:`Lease document (${file.name}):\n\n${atob(b64).substring(0,25000)}\n\n${EXTRACT_PROMPT}`}]}];
       const resp = await fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages})});
       if(!resp.ok) throw new Error(`API ${resp.status}`);
