@@ -33919,6 +33919,27 @@ const SEED_DATA = [
     "_indexResolved": false
   }
 ];
+
+// ── action queue logic ──────────────────────────────────────────────────────
+function deriveActions(leases) {
+  const actions = [];
+  leases.forEach(row => {
+    const b1 = fmt.days(row.break1Date);
+    if (b1 !== null && b1 < 0 && !row._breakResolved) {
+      actions.push({ id:`b-${row.id}`, type:"break", leaseId:row.id, tenant:row.tenantName, asset:row.assetName, unit:row.unitId, date:row.break1Date, title:`Break date passed — ${row.tenantName}`, desc:`The break date of ${fmt.date(row.break1Date)} has passed. Please confirm whether notice was served within the required ${row.break1Notice||6}-month notice period.` });
+    }
+    const nr = fmt.days(row.nextReview);
+    if (nr !== null && nr < 0 && !row._reviewResolved) {
+      actions.push({ id:`r-${row.id}`, type:"review", leaseId:row.id, tenant:row.tenantName, asset:row.assetName, unit:row.unitId, date:row.nextReview, title:`Rent review overdue — ${row.tenantName}`, desc:`OMV rent review due ${fmt.date(row.nextReview)} is outstanding. Please confirm the agreed new rent or note that review is in progress.` });
+    }
+    const ni = fmt.days(row.nextIndexDate);
+    if (ni !== null && ni < 30 && !row._indexResolved) {
+      actions.push({ id:`i-${row.id}`, type:"indexation", leaseId:row.id, tenant:row.tenantName, asset:row.assetName, unit:row.unitId, date:row.nextIndexDate, title:`Indexation ${ni < 0 ? "overdue" : "due"} — ${row.tenantName}`, desc:`${row.indexName||"CPI"} indexation ${ni<0?"was due":"is due"} ${fmt.date(row.nextIndexDate)}. Upload the indexation notice or enter the new rent figure to update the roll.` });
+    }
+  });
+  return actions;
+}
+
 const EXTRACT_PROMPT = `You are a specialist commercial property solicitor and lease analyst for an institutional real estate fund. Extract key lease data from this document and return ONLY a valid JSON object — no preamble, no markdown, no backticks.
 
 Schema:
