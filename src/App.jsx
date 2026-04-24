@@ -34320,7 +34320,7 @@ export default function App() {
         : isImage
         ? [{role:"user",content:[{type:"image",source:{type:"base64",media_type:finalType,data:finalB64}},{type:"text",text:EXTRACT_PROMPT}]}]
         : [{role:"user",content:[{type:"text",text:`Lease document (${file.name}):\n\n${atob(b64).substring(0,25000)}\n\n${EXTRACT_PROMPT}`}]}];
-      const resp = await fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:4000,messages})});
+      const resp = await fetch("/api/extract",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-3-5-sonnet-20241022",max_tokens:4000,messages})});
       if(!resp.ok) throw new Error(`API ${resp.status}`);
       const data = await resp.json();
       const raw = data.content.map(b=>b.text||"").join("").trim();
